@@ -37,3 +37,24 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Azure Web App
+    environment: 'production'
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az webapp config container set --name $(webAppName) --resource-group $(resourceGroupName) --docker-custom-image-name $(containerRegistry)/$(imageRepository):$(tag) --registry-login-server $(containerRegistry) --registry-username $(dockerRegistryServiceConnection) --registry-password $(registryPassword)
+            displayName: Deploy Docker image to Azure Web App
